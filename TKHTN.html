@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Smart Home - Giám sát & Hiển thị Thiết bị</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Poppins', Tahoma, Geneva, Verdana, sans-serif;
+            /* Nền vàng ấm áp, phù hợp giao diện điện thoại */
+            background: linear-gradient(145deg, #F9E45B 0%, #F7D44A 100%);
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Header thẻ trắng nổi bật trên nền vàng */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(2px);
+            border-radius: 28px;
+            padding: 18px 16px;
+            margin-bottom: 18px;
+            text-align: center;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 245, 190, 0.8);
+        }
+
+        h1 {
+            color: #B45F1B;
+            font-size: 1.7rem;
+            letter-spacing: -0.3px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .subtitle {
+            color: #AA6F3C;
+            font-size: 13px;
+            font-weight: 500;
+            background: #FFF3D1;
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 40px;
+        }
+
+        /* Connection status */
+        .status-connection {
+            text-align: center;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            backdrop-filter: blur(4px);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .status-connection.connected {
+            background: #E9F7E1;
+            color: #2C6E2F;
+            border-left: 5px solid #4CAF50;
+        }
+
+        .status-connection.disconnected {
+            background: #FFE8E6;
+            color: #B53B2E;
+            border-left: 5px solid #F44336;
+        }
+
+        /* Cảm biến container - full width */
+        .sensor-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 32px;
+            padding: 20px 16px;
+            margin-bottom: 22px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+            border: 1px solid #FFE6A3;
+            width: 100%;
+        }
+
+        .sensor-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 18px;
+            color: #B45F1B;
+            text-align: center;
+            background: #FFF3E0;
+            display: inline-block;
+            width: auto;
+            padding: 6px 20px;
+            border-radius: 40px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .sensor-card {
+            text-align: center;
+            padding: 18px 10px;
+            background: linear-gradient(135deg, #FFFBF0 0%, #FFF5E0 100%);
+            border-radius: 28px;
+            transition: transform 0.2s ease, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #FFE2A4;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .sensor-card.temp-alert {
+            background: linear-gradient(135deg, #FFF0E0, #FFE0C4);
+            border: 2px solid #FF8C42;
+            box-shadow: 0 0 0 2px rgba(255, 140, 66, 0.3);
+        }
+
+        .sensor-icon {
+            font-size: 44px;
+            margin-bottom: 8px;
+        }
+
+        .sensor-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #9B6A3C;
+            margin-bottom: 8px;
+        }
+
+        .sensor-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #5C3E1B;
+        }
+
+        .sensor-unit {
+            font-size: 14px;
+            font-weight: 500;
+            color: #BC884D;
+        }
+
+        .temp-threshold {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 40px;
+            font-size: 12.5px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .temp-threshold.warning {
+            background: #FFEEE5;
+            color: #C7511E;
+            border-left: 4px solid #FF8C42;
+        }
+
+        .temp-threshold.normal {
+            background: #E6F4E8;
+            color: #2C6E2F;
+        }
+
+        .rain-status {
+            margin-top: 10px;
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 13px;
+            display: inline-block;
+            width: auto;
+        }
+
+        .rain-status.heavy-rain {
+            background: #1E3C72;
+            color: white;
+        }
+
+        .rain-status.light-rain {
+            background: #2B5876;
+            color: white;
+        }
+
+        .rain-status.drizzle {
+            background: #4e54c8;
+            color: white;
+        }
+
+        .rain-status.no-rain {
+            background: #FCEFCF;
+            color: #C67B2E;
+        }
+
+        .update-time {
+            text-align: center;
+            font-size: 11px;
+            color: #BB8A5C;
+            margin-top: 14px;
+            font-weight: 500;
+        }
+
+        /* Container cho Đèn 1 và Đèn 2 - 2 cột ngang */
+        .lights-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        /* Card cho đèn - có relative để đặt icon chỉnh sửa ở góc */
+        .light-card {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 28px;
+            padding: 18px 12px;
+            text-align: center;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+            transition: all 0.25s;
+            border: 1px solid #FFE3AE;
+            display: flex;
+            flex-direction: column;
+            position: relative; /* Để icon chỉnh sửa nằm ở góc trên phải */
+        }
+
+        .light-card:hover {
+            transform: translateY(-3px);
+        }
+
+        /* Nút chỉnh sửa tên - góc trên bên phải */
+        .edit-name-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #FFE0A3;
+            border: none;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 30px;
+            transition: all 0.2s;
+            color: #B45F1B;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .edit-name-btn:hover {
+            background: #FFD27A;
+            transform: scale(1.05);
+        }
+
+        /* Icon đèn */
+        .device-icon {
+            font-size: 60px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .device-icon.den1-on {
+            text-shadow: 0 0 12px #FF4D4D;
+            filter: drop-shadow(0 4px 8px rgba(255, 0, 0, 0.3));
+        }
+
+        .device-icon.den2-on {
+            text-shadow: 0 0 12px #3BAA3B;
+            filter: drop-shadow(0 4px 8px rgba(0, 200, 0, 0.3));
+        }
+
+        /* Tiêu đề đèn căn giữa */
+        .device-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #A55820;
+            margin-bottom: 8px;
+            text-align: center;
+            padding: 0 20px; /* Để tránh bị đè bởi nút edit */
+        }
+
+        .device-status {
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            width: auto;
+            min-width: 90px;
+            align-self: center;
+        }
+
+        .device-status.on {
+            background: #2E7D32;
+            color: white;
+            box-shadow: 0 2px 6px rgba(46, 125, 50, 0.3);
+        }
+
+        .device-status.off {
+            background: #BC7A3E;
+            color: white;
+        }
+
+        /* Nút điều khiển đèn */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 6px;
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-on {
+            background: #F9A825;
+            color: #422c0e;
+        }
+
+        .btn-on:hover {
+            background: #F57F17;
+            transform: scale(1.02);
+            color: white;
+        }
+
+        .btn-off {
+            background: #BCAAA4;
+            color: #4E342E;
+        }
+
+        .btn-off:hover {
+            background: #8D6E63;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        /* Container quạt thông minh - full-width */
+                .fan-full-container {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 32px;
+            padding: 20px 16px;
+            margin-bottom: 22px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+            border: 1px solid #FFE6A3;
+            width: 100%;
+            transition: all 0.3s ease;
+            text-align: center;  /* 👈 THÊM DÒNG NÀY */
+        }
+
+        .fan-full-container:hover {
+            transform: translateY(-3px);
+        }
+
+        .fan-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .fan-icon {
+            font-size: 80px;
+            transition: all 0.2s;
+        }
+
+        .fan-icon.quat-on {
+            animation: spinFan 1.6s linear infinite;
+            color: #FF8C42;
+            filter: drop-shadow(0 0 8px #FFB347);
+        }
+
+        @keyframes spinFan {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fan-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #A55820;
+            margin-bottom: 6px;
+        }
+
+        .fan-status {
+            font-size: 1.1rem;
+            padding: 8px 20px;
+            border-radius: 60px;
+            font-weight: 700;
+            display: inline-block;
+            width: auto;
+            min-width: 140px;
+            text-align: center;  /* 👈 THÊM DÒNG NÀY */
+        }
+
+        .fan-status.on {
+            background: #2E7D32;
+            color: white;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+        }
+
+        .fan-status.off {
+            background: #BC7A3E;
+            color: white;
+        }
+
+        .fan-info-note {
+            font-size: 13px;
+            background: #FFF1D6;
+            color: #BF7B3C;
+            display: inline-block;
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* Responsive cho điện thoại */
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+            .lights-container {
+                gap: 12px;
+            }
+            .device-icon {
+                font-size: 50px;
+            }
+            .sensor-value {
+                font-size: 22px;
+            }
+            .device-title {
+                font-size: 1rem;
+                padding: 0 24px;
+            }
+            .btn-on, .btn-off {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .header h1 {
+                font-size: 1.4rem;
+            }
+            .edit-name-btn {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+                top: 8px;
+                right: 8px;
+            }
+            .device-status {
+                font-size: 0.75rem;
+                padding: 5px 8px;
+                min-width: 75px;
+            }
+            .fan-title {
+                font-size: 1.3rem;
+            }
+            .fan-icon {
+                font-size: 65px;
+            }
+            .fan-status {
+                font-size: 0.9rem;
+                padding: 6px 16px;
+                min-width: 120px;
+            }
+            .fan-info-note {
+                font-size: 11px;
+                padding: 6px 14px;
+            }
+        }
+    </style>
+    
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 Smart Home <span style="font-size: 0.9rem;">🌻</span></h1>
+            <div class="subtitle">⚡ Giám sát Đèn, Quạt | Nhiệt độ, Độ ẩm, Mưa</div>
+        </div>
+        
+        <div id="connectionStatus" class="status-connection disconnected">
+            🔌 Đang kết nối MQTT...
+        </div>
+        
+        <!-- Cảm biến môi trường - full width -->
+        <div class="sensor-container">
+            <div class="sensor-title">🌡️ Cảm biến môi trường</div>
+            <div class="sensor-grid">
+                <div class="sensor-card" id="tempCard">
+                    <div class="sensor-icon">🌡️</div>
+                    <div class="sensor-label">Nhiệt độ</div>
+                    <div class="sensor-value">
+                        <span id="temperature">--</span>
+                        <span class="sensor-unit">°C</span>
+                    </div>
+                </div>
+                <div class="sensor-card">
+                    <div class="sensor-icon">💧</div>
+                    <div class="sensor-label">Độ ẩm không khí</div>
+                    <div class="sensor-value">
+                        <span id="humidity">--</span>
+                        <span class="sensor-unit">%</span>
+                    </div>
+                </div>
+                <div class="sensor-card">
+                    <div class="sensor-icon">🌧️</div>
+                    <div class="sensor-label">Cảm biến mưa</div>
+                    <div class="sensor-value">
+                        <span id="rainIntensity">--</span>
+                        <span class="sensor-unit">%</span>
+                    </div>
+                    <div class="rain-status" id="rainStatus">--</div>
+                </div>
+            </div>
+            <div class="temp-threshold" id="tempInfo">
+                ⚙️ Quạt được ESP tự động BẬT/TẮT theo nhiệt độ > 32°C
+            </div>
+            <div class="update-time" id="updateTime">
+                📡 Chưa có dữ liệu
+            </div>
+        </div>
+        
+        <!-- ĐÈN 1 và ĐÈN 2 - 2 cột ngang, icon chỉnh sửa ở góc trên phải -->
+        <div class="lights-container">
+            <!-- ĐÈN 1 -->
+            <div class="light-card" id="den1Card">
+                <button class="edit-name-btn" data-device="den1" title="Sửa tên đèn">✏️</button>
+                <div class="device-icon" id="den1Icon">💡</div>
+                <div class="device-title" id="den1Title">ĐÈN 1</div>
+                <div class="device-status off" id="den1Status">● TẮT</div>
+                <div class="btn-group">
+                    <button class="btn-on" onclick="controlDevice('den1', 'ON')">BẬT</button>
+                    <button class="btn-off" onclick="controlDevice('den1', 'OFF')">TẮT</button>
+                </div>
+            </div>
+            
+            <!-- ĐÈN 2 -->
+            <div class="light-card" id="den2Card">
+                <button class="edit-name-btn" data-device="den2" title="Sửa tên đèn">✏️</button>
+                <div class="device-icon" id="den2Icon">💡</div>
+                <div class="device-title" id="den2Title">ĐÈN 2</div>
+                <div class="device-status off" id="den2Status">● TẮT</div>
+                <div class="btn-group">
+                    <button class="btn-on" onclick="controlDevice('den2', 'ON')">BẬT</button>
+                    <button class="btn-off" onclick="controlDevice('den2', 'OFF')">TẮT</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- QUẠT THÔNG MINH - Container có độ rộng bằng container cảm biến (full-width) -->
+        <div class="fan-full-container" id="fanContainer">
+            <div class="fan-content">
+                <div class="fan-icon" id="quatIcon">🌀</div>
+                <div class="fan-title">QUẠT THÔNG MINH</div>
+                <div class="fan-status off" id="quatStatus">● TẮT</div>
+                <div class="fan-info-note">
+                    🤖 Tự động bật/tắt theo nhiệt độ (ESP điều khiển) | Nhiệt độ > 29°C → BẬT
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CẤU HÌNH MQTT ====================
+            const mqttConfig = {
+            host: "wss://broker.emqx.io:8084/mqtt",
+            username: "",
+            password: ""
+        };
+                
+        // Topics
+        const topics = {
+            den1: "home/den1",
+            den2: "home/den2",
+            den1Status: "home/den1/status",
+            den2Status: "home/den2/status",
+            quatStatus: "home/quat/status",
+            temperature: "home/sensor/temperature",
+            humidity: "home/sensor/humidity",
+            rainStatus: "home/sensor/rain",
+            rainValue: "home/sensor/rain_value",
+            rainDigital: "home/sensor/rain_digital"
+        };
+        
+        let client = null;
+        let isConnected = false;
+        let currentTemperature = 0;
+        const TEMP_THRESHOLD = 29;// chỉnh ở dây ...............................................................................................
+        
+        // ==================== QUẢN LÝ TÊN ĐÈN (localStorage) ====================
+        function loadDeviceNames() {
+            const den1Saved = localStorage.getItem("smart_home_den1_name");
+            const den2Saved = localStorage.getItem("smart_home_den2_name");
+            if (den1Saved && den1Saved.trim() !== "") {
+                document.getElementById("den1Title").innerText = den1Saved;
+            }
+            if (den2Saved && den2Saved.trim() !== "") {
+                document.getElementById("den2Title").innerText = den2Saved;
+            }
+        }
+        
+        function saveDeviceName(device, newName) {
+            if (device === "den1") {
+                localStorage.setItem("smart_home_den1_name", newName);
+                document.getElementById("den1Title").innerText = newName;
+            } else if (device === "den2") {
+                localStorage.setItem("smart_home_den2_name", newName);
+                document.getElementById("den2Title").innerText = newName;
+            }
+        }
+        
+        function promptRename(device) {
+            let currentName = "";
+            if (device === "den1") {
+                currentName = document.getElementById("den1Title").innerText;
+            } else if (device === "den2") {
+                currentName = document.getElementById("den2Title").innerText;
+            } else return;
+            
+            let newName = prompt(`✏️ Nhập tên mới cho thiết bị "${currentName}":`, currentName);
+            if (newName !== null && newName.trim() !== "") {
+                saveDeviceName(device, newName.trim());
+                showToast(`✅ Đã đổi tên thành: ${newName.trim()}`);
+            } else if (newName !== null && newName.trim() === "") {
+                alert("⚠️ Tên không được để trống!");
+            }
+        }
+        
+        function showToast(message) {
+            let toastContainer = document.getElementById("toastMessage");
+            if (!toastContainer) {
+                toastContainer = document.createElement("div");
+                toastContainer.id = "toastMessage";
+                toastContainer.style.position = "fixed";
+                toastContainer.style.bottom = "20px";
+                toastContainer.style.left = "50%";
+                toastContainer.style.transform = "translateX(-50%)";
+                toastContainer.style.backgroundColor = "#4CAF50";
+                toastContainer.style.color = "white";
+                toastContainer.style.padding = "8px 18px";
+                toastContainer.style.borderRadius = "40px";
+                toastContainer.style.fontSize = "13px";
+                toastContainer.style.fontWeight = "bold";
+                toastContainer.style.zIndex = "9999";
+                toastContainer.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+                toastContainer.style.opacity = "0";
+                toastContainer.style.transition = "opacity 0.3s";
+                document.body.appendChild(toastContainer);
+            }
+            toastContainer.textContent = message;
+            toastContainer.style.opacity = "1";
+            setTimeout(() => {
+                toastContainer.style.opacity = "0";
+            }, 2000);
+        }
+        
+        // ==================== KẾT NỐI MQTT ====================
+        function connectMQTT() {
+            const options = {
+                username: mqttConfig.username,
+                password: mqttConfig.password,
+                clean: true,
+                reconnectPeriod: 5000,
+                connectTimeout: 30000,
+                keepalive: 60
+            };
+            
+            client = mqtt.connect(mqttConfig.host, options);
+            
+            client.on('connect', () => {
+                console.log('✅ Kết nối MQTT thành công');
+                isConnected = true;
+                updateConnectionStatus('connected', '✅ Đã kết nối | Nhận dữ liệu từ ESP');
+                
+                const subTopics = [
+                    topics.den1Status, topics.den2Status, topics.quatStatus,
+                    topics.temperature, topics.humidity, topics.rainStatus,
+                    topics.rainValue, topics.rainDigital
+                ];
+                client.subscribe(subTopics, { qos: 1 }, (err) => {
+                    if (!err) console.log('📡 Subscribe thành công các topic');
+                });
+            });
+            
+            client.on('message', (topic, message) => {
+                const msg = message.toString();
+                console.log(`📨 [${topic}] -> ${msg}`);
+                
+                switch(topic) {
+                    case topics.den1Status:
+                        updateDeviceUI('den1', msg);
+                        break;
+                    case topics.den2Status:
+                        updateDeviceUI('den2', msg);
+                        break;
+                    case topics.quatStatus:
+                        updateFanUI(msg);
+                        break;
+                    case topics.temperature:
+                        updateTemperature(msg);
+                        break;
+                    case topics.humidity:
+                        updateHumidity(msg);
+                        break;
+                    case topics.rainValue:
+                        updateRainIntensity(msg);
+                        break;
+                    case topics.rainStatus:
+                    case topics.rainDigital:
+                        updateRainStatusFromMQTT(msg, topic);
+                        break;
+                    default: break;
+                }
+            });
+            
+            client.on('error', (err) => {
+                console.error('❌ Lỗi MQTT:', err);
+                isConnected = false;
+                updateConnectionStatus('disconnected', '❌ Lỗi kết nối MQTT');
+            });
+            
+            client.on('close', () => {
+                console.log('🔌 Ngắt kết nối');
+                isConnected = false;
+                updateConnectionStatus('disconnected', '🔌 Mất kết nối MQTT');
+            });
+            
+            client.on('reconnect', () => {
+                updateConnectionStatus('disconnected', '🔄 Đang kết nối lại...');
+            });
+        }
+        
+        function updateConnectionStatus(status, message) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.className = `status-connection ${status}`;
+            statusDiv.innerHTML = message;
+        }
+        
+        // Điều khiển đèn (chỉ đèn)
+        function controlDevice(device, state) {
+            if (!client || !isConnected) {
+                alert('❌ Chưa kết nối MQTT! Vui lòng đợi.');
+                return;
+            }
+            let topic = null;
+            if (device === 'den1') topic = topics.den1;
+            else if (device === 'den2') topic = topics.den2;
+            else return;
+            
+            client.publish(topic, state, { qos: 1, retain: false }, (err) => {
+                if (err) {
+                    console.error(`Lỗi gửi ${device}:`, err);
+                    alert(`⚠️ Không thể điều khiển ${device.toUpperCase()}`);
+                } else {
+                    console.log(`✅ Gửi lệnh ${state} đến ${device}`);
+                }
+            });
+        }
+        
+        // Cập nhật UI cho đèn
+        function updateDeviceUI(device, state) {
+            let isON = false;
+            if (typeof state === 'string') {
+                const upper = state.toUpperCase();
+                isON = (upper === 'ON' || upper === '1' || upper === 'TRUE');
+            } else if (typeof state === 'number') isON = (state === 1);
+            
+            if (device === 'den1') {
+                const statusEl = document.getElementById('den1Status');
+                const iconEl = document.getElementById('den1Icon');
+                statusEl.textContent = isON ? '● BẬT' : '● TẮT';
+                statusEl.className = `device-status ${isON ? 'on' : 'off'}`;
+                if (isON) {
+                    iconEl.classList.add('den1-on');
+                    iconEl.style.opacity = '1';
+                } else {
+                    iconEl.classList.remove('den1-on');
+                    iconEl.style.opacity = '0.6';
+                }
+            } 
+            else if (device === 'den2') {
+                const statusEl = document.getElementById('den2Status');
+                const iconEl = document.getElementById('den2Icon');
+                statusEl.textContent = isON ? '● BẬT' : '● TẮT';
+                statusEl.className = `device-status ${isON ? 'on' : 'off'}`;
+                if (isON) {
+                    iconEl.classList.add('den2-on');
+                    iconEl.style.opacity = '1';
+                } else {
+                    iconEl.classList.remove('den2-on');
+                    iconEl.style.opacity = '0.6';
+                }
+            }
+            updateTimeDisplay();
+        }
+        
+        // Cập nhật UI cho quạt
+        function updateFanUI(state) {
+            let isON = false;
+            if (typeof state === 'string') {
+                const upper = state.toUpperCase();
+                isON = (upper === 'ON' || upper === '1' || upper === 'TRUE');
+            } else if (typeof state === 'number') isON = (state === 1);
+            
+            const statusEl = document.getElementById('quatStatus');
+            const iconEl = document.getElementById('quatIcon');
+            const fanContainer = document.getElementById('fanContainer');
+            
+            statusEl.textContent = isON ? '● ĐANG BẬT' : '● ĐANG TẮT';
+            statusEl.className = `fan-status ${isON ? 'on' : 'off'}`;
+            
+            if (isON) {
+                iconEl.classList.add('quat-on');
+                iconEl.style.color = '#FF9142';
+                fanContainer.style.border = '2px solid #FFB347';
+                fanContainer.style.boxShadow = '0 0 0 2px rgba(255, 180, 71, 0.3), 0 12px 28px rgba(0,0,0,0.1)';
+            } else {
+                iconEl.classList.remove('quat-on');
+                iconEl.style.color = '#BE8F64';
+                fanContainer.style.border = '1px solid #FFE6A3';
+                fanContainer.style.boxShadow = '0 12px 28px rgba(0, 0, 0, 0.1)';
+            }
+            updateTimeDisplay();
+        }
+        
+        function updateTemperature(value) {
+            currentTemperature = parseFloat(value);
+            if (isNaN(currentTemperature)) return;
+            const tempSpan = document.getElementById('temperature');
+            tempSpan.textContent = currentTemperature.toFixed(1);
+            
+            const tempInfoDiv = document.getElementById('tempInfo');
+            const tempCardDiv = document.getElementById('tempCard');
+            
+            if (currentTemperature > TEMP_THRESHOLD) {
+                tempInfoDiv.innerHTML = `⚠️ NHIỆT ĐỘ CAO: ${currentTemperature.toFixed(1)}°C > ${TEMP_THRESHOLD}°C → ESP đã BẬT quạt tự động ⚠️`;
+                tempInfoDiv.className = 'temp-threshold warning';
+                tempCardDiv.classList.add('temp-alert');
+            } else {
+                tempInfoDiv.innerHTML = `✅ Nhiệt độ bình thường: ${currentTemperature.toFixed(1)}°C ≤ ${TEMP_THRESHOLD}°C → ESP duy trì/tắt quạt (tiết kiệm)`;
+                tempInfoDiv.className = 'temp-threshold normal';
+                tempCardDiv.classList.remove('temp-alert');
+            }
+            updateTimeDisplay();
+        }
+        
+        function updateHumidity(value) {
+            const humSpan = document.getElementById('humidity');
+            let h = parseFloat(value);
+            humSpan.textContent = !isNaN(h) ? h.toFixed(1) : '--';
+            updateTimeDisplay();
+        }
+        
+        function updateRainIntensity(value) {
+            const rainSpan = document.getElementById('rainIntensity');
+            rainSpan.textContent = value;
+            updateTimeDisplay();
+        }
+        
+        function updateRainStatusFromMQTT(value, topic) {
+            let raw = value.toString().toUpperCase();
+            let displayText = '';
+            let cssClass = '';
+            
+            if (topic === topics.rainDigital) {
+                const dig = parseInt(value);
+                if (dig === 1) raw = 'NO_RAIN';
+                else if (dig === 0) raw = 'RAIN_DETECT';
+            }
+            
+            if (raw.includes('HEAVY')) {
+                displayText = '🌧️ Mưa to';
+                cssClass = 'heavy-rain';
+            } else if (raw.includes('LIGHT')) {
+                displayText = '🌦️ Mưa nhỏ';
+                cssClass = 'light-rain';
+            } else if (raw.includes('DRIZZLE')) {
+                displayText = '💧 Mưa phùn';
+                cssClass = 'drizzle';
+            } else if (raw.includes('NO_RAIN') || raw === 'NO RAIN') {
+                displayText = '☀️ Không mưa';
+                cssClass = 'no-rain';
+            } else if (raw.includes('RAIN_DETECT')) {
+                displayText = '🌧️ Đang có mưa';
+                cssClass = 'light-rain';
+            } else {
+                displayText = raw;
+                cssClass = 'no-rain';
+            }
+            
+            const statusDiv = document.getElementById('rainStatus');
+            statusDiv.textContent = displayText;
+            statusDiv.className = `rain-status ${cssClass}`;
+            updateTimeDisplay();
+        }
+        
+        function updateTimeDisplay() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('vi-VN');
+            document.getElementById('updateTime').innerHTML = `🕒 Cập nhật lúc: ${timeStr}`;
+        }
+        
+        // Gán sự kiện chỉnh sửa tên (các nút đã được đặt ở góc trên phải)
+        function bindRenameEvents() {
+            const editBtns = document.querySelectorAll('.edit-name-btn');
+            editBtns.forEach(btn => {
+                btn.removeEventListener('click', renameHandler);
+                btn.addEventListener('click', renameHandler);
+            });
+        }
+        
+        function renameHandler(e) {
+            e.stopPropagation();
+            const device = this.getAttribute('data-device');
+            if (device) promptRename(device);
+        }
+        
+        // Khởi tạo
+        window.addEventListener('load', () => {
+            loadDeviceNames();
+            bindRenameEvents();
+            connectMQTT();
+            const quatIcon = document.getElementById('quatIcon');
+            if (quatIcon) quatIcon.style.color = '#BE8F64';
+        });
+        
+        window.addEventListener('beforeunload', () => {
+            if (client && isConnected) client.end(true);
+        });
+    </script>
+</body>
+</html>
